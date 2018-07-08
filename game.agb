@@ -1,0 +1,102 @@
+INCLUDE "hardware.inc"
+
+;reserve memory
+RSSET $C000	
+REPT 40
+SPR\@_Y	RB 1
+SPR\@_X	RB 1
+SPR\@_TILE	RB 1
+SPR\@_FLAGS	RB 1
+ENDR
+
+SECTION	"Vblank",ROM0[$0040]
+	;Call OAMDMA, and set flag
+	reti
+SECTION	"LCDC",ROM0[$0048]
+	reti
+SECTION	"Timer_Overflow",ROM0[$0050]
+	reti
+SECTION	"Serial",ROM0[$0058]
+	reti
+SECTION	"Input",ROM0[$0060]
+	reti
+	
+;section dma
+	
+SECTION	"start",ROM0[$0100]
+    jr	begin
+	DB $BE, $EF
+	
+	ROM_HEADER	"VIRUS! GB vers ", CART_ROM, CART_ROM_256K, CART_RAM_NONE
+	
+begin:
+	di ;Disable interrupts
+	ld sp, $E000 ;Set the stack to the end of the RAM
+	xor a
+	ld [rNR52], a ;Shut down shound system
+	
+	;CopyDMA
+	;Clear oamtable
+	;Clear ram
+	;Clear hram
+	call StopLCD
+	;Crear mapvram
+	;Set vram
+	;Set oam
+	;Game inits
+	
+loop:
+	halt
+	;Check vblank
+	;Game loop
+	jr	loop
+	
+Vblank:
+	
+
+;Routines
+mem_Clear:
+	ld a, e                                   
+	or d                                      
+	jr z, .end                         
+
+	xor a                                     
+	ld [hl+], a                               
+	dec de                                    
+	jr mem_Clear                            
+
+.end:
+	ret  
+	
+mem_Copy:
+	ld a, c                                   
+	or b                                      
+	jr z, .end                         
+
+	ld a, [hl+]                               
+	ld [de], a                                
+	inc de                                    
+	dec bc                                    
+	jr mem_Copy                            
+
+.end:
+	ret 
+
+StopLCD:
+        ld      a,[rLCDC]
+        rlca
+        ret     nc
+		
+.wait:
+        ld      a,[rLY]
+        cp      145
+        jr      c, .wait
+
+        ld      a,[rLCDC]
+        res     7,a
+        ld      [rLCDC],a
+
+        ret
+		
+SECTION	"pad",ROMX
+	nop
