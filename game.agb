@@ -66,22 +66,37 @@ begin:
 	ld sp, $E000 ;Set the stack to the end of the RAM
 	xor a
 	ld [rNR52], a ;Shut down shound system
+	call StopLCD
 	
 	ld bc, $11
 	ld hl, dma_src
 	ld de, update_oam
 	call mem_Copy
 	
-	;Clear oamtable
-	;Clear ram
-	;Clear hram
-	call StopLCD
-	;Crear mapvram
-	;Set vram
-	;Set oam
-	;Game inits
+	ld de, END_SPR_TBL-SPR_TBL
+	ld hl, SPR_TBL
+	call mem_Clear
 	
+	IF RAM_END - RAM_START != 0
+	ld de, RAM_END - RAM_START
+	ld hl, RAM_START
+	call mem_Clear
+	ENDC
+
+	IF HRAM_END - HRAM_START != 0
+	ld de, HRAM_END - HRAM_START
+	ld hl, HRAM_START
+	call mem_Clear
+	ENDC
+	
+	;Init start screen
+	
+	ld a, LCDCF_ON | LCDCF_WINOFF | LCDCF_BG8000 | LCDCF_BGON | LCDCF_OBJON | LCDCF_OBJ8
+	ld [rLCDC], a
+	ld a, IEF_VBLANK
+	ld [rIE], a
 	ei
+	
 loop:
 	halt
 	ld a, [VBFLAG]
