@@ -1,17 +1,40 @@
 INCLUDE "hardware.inc"
 
-;reserve memory
-RSSET $C000	
+RSSET _RAM
+
+;Sprite OAM table
+SPR_TBL RB 0
 REPT 40
-SPR\@_Y	RB 1
+SPR\@_Y	RB 1 ;RGBDS, my OCD thanks you for not allowing a \t here
 SPR\@_X	RB 1
 SPR\@_TILE	RB 1
 SPR\@_FLAGS	RB 1
 ENDR
+END_SPR_TBL RB 0
+
+;Ram variables
+RAM_START RB 0
+
+RAM_END RB 0
+
+;HRAM
+RSSET _HRAM
+
+;OAM DMA routine
+update_oam RB 11
+
+;HRam variables
+HRAM_START RB 0
+VBFLAG RB 1
+RNG RB 1
+HRAM_END RB 0
+
 
 SECTION	"Vblank",ROM0[$0040]
-	;Call OAMDMA, and set flag
-	reti
+	push af
+	ld a, $1
+	ldh [VBFLAG], a
+	jp update_oam
 SECTION	"LCDC",ROM0[$0048]
 	reti
 SECTION	"Timer_Overflow",ROM0[$0050]
@@ -21,7 +44,16 @@ SECTION	"Serial",ROM0[$0058]
 SECTION	"Input",ROM0[$0060]
 	reti
 	
-;section dma
+SECTION "DMARout", ROM0
+dma_src:
+	ld a, $C0
+	ld [rDMA], a
+	ld a, $28
+.wait
+	dec a
+	jr nz, .wait
+	pop af
+	reti
 	
 SECTION	"start",ROM0[$0100]
     jr	begin
@@ -35,7 +67,11 @@ begin:
 	xor a
 	ld [rNR52], a ;Shut down shound system
 	
-	;CopyDMA
+	ld bc, $11
+	ld hl, dma_src
+	ld de, update_oam
+	call mem_Copy
+	
 	;Clear oamtable
 	;Clear ram
 	;Clear hram
@@ -45,14 +81,15 @@ begin:
 	;Set oam
 	;Game inits
 	
+	ei
 loop:
 	halt
-	;Check vblank
-	;Game loop
+	ld a, [VBFLAG]
+	or a
+	jp z, loop
+	;Update VRAM
+	;Game logic
 	jr	loop
-	
-Vblank:
-	
 
 ;Routines
 mem_Clear:
