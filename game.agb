@@ -135,20 +135,43 @@ mem_Copy:
 	ret 
 
 StopLCD:
-        ld      a,[rLCDC]
-        rlca
-        ret     nc
-		
+	ld      a,[rLCDC]
+	rlca
+	ret     nc
+	
 .wait:
-        ld      a,[rLY]
-        cp      145
-        jr      c, .wait
+	ld      a,[rLY]
+	cp      145
+	jr      c, .wait
 
-        ld      a,[rLCDC]
-        res     7,a
-        ld      [rLCDC],a
+	ld      a,[rLCDC]
+	res     7,a
+	ld      [rLCDC],a
 
-        ret
+	ret
+	
+next_rand:
+	ld a, [RNG]
+	srl a
+	jr nc, .skip
+	xor $AF
+.skip
+	ld [RNG], a
+	ret
+	
+;Calculates a%b in a
+modulus:
+	ld c, a ;Store numerator in c
+	xor a ;Remainder = 0
+REPT 8
+	sla c ;Set carry=c[i]
+	rla ;Remainder << 1 and Remainder[0]=c[i]
+	cp b
+	jr c, .skip\@
+	sub b ;If Remainder > b, Remanider -= b
+.skip\@
+ENDR
+	ret
 		
 SECTION	"pad",ROMX
 	nop
