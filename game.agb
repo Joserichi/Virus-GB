@@ -28,6 +28,7 @@ update_oam RB 11
 HRAM_START RB 0
 VBFLAG RB 1
 RNG RB 1
+MENUPOS RB 1
 HRAM_END RB 0
 
 
@@ -104,20 +105,86 @@ begin:
 	ld de, _SCRN0
 	call mem_Copy
 	
-	ld a, LCDCF_ON | LCDCF_WINOFF | LCDCF_BG8000 |LCDCF_BG9800 | LCDCF_BGON | LCDCF_OBJON | LCDCF_OBJ8
+	ld a, LCDCF_ON | LCDCF_WINOFF | LCDCF_BG8000 |LCDCF_BG9800 | LCDCF_BGON | LCDCF_OBJOFF
 	ld [rLCDC], a
 	ld a, IEF_VBLANK
 	ld [rIE], a
 	ei
 	
-loop:
+titleloop:
 	halt
 	ld a, [VBFLAG]
 	or a
-	jp z, loop
-	;Update VRAM
-	;Game logic
-	jr	loop
+	jr z, titleloop
+	xor a
+	ld [VBFLAG], a
+	
+;Update menu arrow
+	ldh a, [MENUPOS]
+	or a
+	jr nz, .join
+	ld a, $38
+	ld [_SCRN0+$0B*32+7],a
+	xor a
+	ld [_SCRN0+$0D*32+7],a
+	jr .host
+.join:
+	ld a, $38
+	ld [_SCRN0+$0D*32+7],a
+	xor a
+	ld [_SCRN0+$0B*32+7],a
+.host:
+
+;Reading joypad
+	ld  a,%00100000
+	ld  [rP1],a
+	ld  a,[rP1]
+	ld  a,[rP1]
+	ld  a,[rP1]
+	ld  a,[rP1]
+	cpl
+	and $0F
+	swap a
+	ld  b,a
+
+	ld  a,%00010000
+	ld  [rP1],a  
+	ld  a,[rP1]
+	ld  a,[rP1]
+	ld  a,[rP1]
+	ld  a,[rP1]
+	cpl
+	and $0F
+	or  b
+	
+	bit 7, a
+	jr nz, .dwn
+	bit 6, a
+	jr nz, .up
+	bit 3, a
+	jr nz, .init
+	bit 0, a
+	jr nz, .init
+	jr .finput
+.up:
+	xor a
+	ld [MENUPOS], a
+	jr .finput
+.dwn:
+	ld a, $1
+	ld [MENUPOS], a
+	jr .finput
+
+.finput:
+	jr	titleloop
+
+.init:
+	;Initalize and send deck if host, recive if join
+
+gameloop:
+	;TODO Game
+	jr gameloop
+
 
 ;Routines
 mem_Clear:
