@@ -742,6 +742,11 @@ SCRN_VY   EQU 256 ; Virtual height of screen in pixels
 SCRN_VX_B EQU 32  ; Virtual width of screen in bytes
 SCRN_VY_B EQU 32  ; Virtual height of screen in bytes
 
+
+DMG_ONLY EQU $00
+CGB_COMPATIBLE EQU $80
+CGB_ONLY EQU $C0
+
 ;*
 ;* Nintendo scrolling logo
 ;* (Code won't work on a real GameBoy)
@@ -753,14 +758,19 @@ NINTENDO_LOGO : MACRO
 ENDM
 
 ROM_HEADER:   MACRO
+
 	NINTENDO_LOGO
-	DB \1 ; Cart name - 15bytes
-	DB 0                         ; $143
+
+	DB \1
+	REPT 15-STRLEN(\1)
+	DB 0
+	ENDR                         ; Cart name - 15bytes
+	DB \2                        ; $143
 	DB 0,0                       ; $144 - Licensee code (not important)
 	DB 0                         ; $146 - SGB Support indicator
-	DB \2                        ; $147 - Cart type
-	DB \3                        ; $148 - ROM Size
-	DB \4                        ; $149 - RAM Size
+	DB \3                        ; $147 - Cart type
+	DB \4                        ; $148 - ROM Size
+	DB \5                        ; $149 - RAM Size
 	DB 1                         ; $14a - Destination code
 	DB $33                       ; $14b - Old licensee code
 	DB 0                         ; $14c - Mask ROM version

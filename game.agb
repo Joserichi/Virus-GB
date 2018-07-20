@@ -1,8 +1,11 @@
 INCLUDE "hardware.inc"
 INCLUDE "graphics.hgb"
 
+SPRITES EQU 0 ;Use sprites
+
 RSSET _RAM
 
+IF	SPRITES==1
 ;Sprite OAM table
 SPR_TBL RB 0
 REPT 40
@@ -12,17 +15,24 @@ SPR\@_TILE	RB 1
 SPR\@_FLAGS	RB 1
 ENDR
 END_SPR_TBL RB 0
+ENDC
 
 ;Ram variables
 RAM_START RB 0
 DECK RB 68
 RAM_END RB 0
 
+IF	RAM_END > $DFFF
+FAIL "Too many RAM variables"
+ENDC
+
 ;HRAM
 RSSET _HRAM
 
+IF	SPRITES==1
 ;OAM DMA routine
 update_oam RB 11
+ENDC
 
 ;HRam variables
 HRAM_START RB 0
@@ -31,12 +41,20 @@ RNG RB 1
 MENUPOS RB 1
 HRAM_END RB 0
 
+IF	HRAM_END > $FFFE
+FAIL "Too many HRAM variables"
+ENDC
 
 SECTION	"Vblank",ROM0[$0040]
 	push af
 	ld a, $1
 	ldh [VBFLAG], a
+IF	SPRITES==1
 	jp update_oam
+ELSE
+	reti
+ENDC
+
 SECTION	"LCDC",ROM0[$0048]
 	reti
 SECTION	"Timer_Overflow",ROM0[$0050]
@@ -45,7 +63,8 @@ SECTION	"Serial",ROM0[$0058]
 	reti
 SECTION	"Input",ROM0[$0060]
 	reti
-	
+
+IF	SPRITES==1
 SECTION "DMARout", ROM0
 dma_src:
 	ld a, $C0
@@ -56,12 +75,13 @@ dma_src:
 	jr nz, .wait
 	pop af
 	reti
+ENDC
 	
 SECTION	"start",ROM0[$0100]
     jr	begin
 	DB $BE, $EF
 	
-	ROM_HEADER	"VIRUS! GB vers ", CART_ROM, CART_ROM_256K, CART_RAM_NONE
+	ROM_HEADER	"VIRUS!", DMG_ONLY, CART_ROM, CART_ROM_256K, CART_RAM_NONE
 	
 begin:
 	di ;Disable interrupts
@@ -69,7 +89,8 @@ begin:
 	xor a
 	ld [rNR52], a ;Shut down shound system
 	call StopLCD
-	
+
+IF	SPRITES==1
 	ld bc, $11
 	ld hl, dma_src
 	ld de, update_oam
@@ -78,18 +99,19 @@ begin:
 	ld de, END_SPR_TBL-SPR_TBL
 	ld hl, SPR_TBL
 	call mem_Clear
+ENDC
 	
-	IF RAM_END - RAM_START != 0
+IF RAM_END - RAM_START != 0
 	ld de, RAM_END - RAM_START
 	ld hl, RAM_START
 	call mem_Clear
-	ENDC
+ENDC
 
-	IF HRAM_END - HRAM_START != 0
+IF HRAM_END - HRAM_START != 0
 	ld de, HRAM_END - HRAM_START
 	ld hl, HRAM_START
 	call mem_Clear
-	ENDC
+ENDC
 	
 	;Init start screen
 	ld a, %11100100
