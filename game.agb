@@ -52,6 +52,7 @@ SECTION	"Vblank",ROM0[$0040]
 IF	SPRITES==1
 	jp update_oam
 ELSE
+	pop af
 	reti
 ENDC
 
